@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>GlucoAura — AI Breath Glucose Monitor</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#060A12;--surface:#0C1524;--card:#101E34;--border:#1A2E4A;
+  --teal:#00D4C8;--teal2:#006B66;--blue:#2979FF;
+  --amber:#FFB300;--red:#FF4455;--green:#00E676;
+  --text:#E4EEF8;--muted:#506880;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,200,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,200,.03) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0;}
+.orb{position:fixed;border-radius:50%;filter:blur(140px);pointer-events:none;z-index:0}
+.o1{width:700px;height:700px;background:rgba(0,212,200,.07);top:-300px;right:-200px}
+.o2{width:500px;height:500px;background:rgba(41,121,255,.05);bottom:-150px;left:-150px}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:14px 40px;background:rgba(6,10,18,.9);backdrop-filter:blur(24px);border-bottom:1px solid var(--border);}
+.logo{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;background:linear-gradient(120deg,var(--teal),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.live-dot{display:flex;align-items:center;gap:7px;font-family:'DM Mono',monospace;font-size:11px;color:var(--teal);background:rgba(0,212,200,.08);border:1px solid var(--teal2);padding:5px 12px;border-radius:20px;}
+.live-dot::before{content:'';width:7px;height:7px;background:var(--teal);border-radius:50%;animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+#hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:100px 24px 60px;position:relative;z-index:1;}
+.hero-eyebrow{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2.5px;color:var(--teal);text-transform:uppercase;margin-bottom:24px;}
+.hero-h1{font-family:'Syne',sans-serif;font-size:clamp(40px,8vw,88px);font-weight:800;line-height:.95;letter-spacing:-3px;}
+.hero-h1 .g{background:linear-gradient(120deg,var(--teal) 20%,var(--blue) 80%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.hero-p{margin-top:24px;max-width:520px;font-size:17px;color:var(--muted);line-height:1.65;font-weight:300;}
+.hero-btn{margin-top:40px;background:linear-gradient(120deg,var(--teal),var(--blue));color:#060A12;font-family:'Syne',sans-serif;font-weight:800;font-size:16px;padding:15px 40px;border-radius:10px;border:none;cursor:pointer;box-shadow:0 0 50px rgba(0,212,200,.3);transition:transform .15s,box-shadow .15s;}
+.hero-btn:hover{transform:translateY(-3px);box-shadow:0 0 70px rgba(0,212,200,.45)}
+.pills{display:flex;gap:12px;margin-top:48px;flex-wrap:wrap;justify-content:center;}
+.pill{background:var(--card);border:1px solid var(--border);padding:10px 20px;border-radius:30px;font-family:'DM Mono',monospace;font-size:12px;display:flex;align-items:center;gap:8px;}
+.pill-val{color:var(--teal);font-weight:500}
+
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px;position:relative;z-index:1;}
+.sh{margin-bottom:40px}
+.sh-tag{font-family:'DM Mono',monospace;font-size:11px;color:var(--teal);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px}
+.sh-title{font-family:'Syne',sans-serif;font-size:clamp(26px,4vw,40px);font-weight:800;letter-spacing:-1px}
+.sh-desc{margin-top:10px;color:var(--muted);font-size:15px;line-height:1.6;max-width:480px}
+
+#scan-section{padding:100px 0 80px}
+.scan-layout{display:grid;grid-template-columns:1fr 420px;gap:32px;align-items:start;}
+@media(max-width:800px){.scan-layout{grid-template-columns:1fr}}
+
+/* QUESTION FLOW */
+.q-flow{background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden;}
+.q-header{padding:24px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;}
+.q-header-icon{width:36px;height:36px;border-radius:10px;background:rgba(0,212,200,.1);display:flex;align-items:center;justify-content:center;font-size:18px;}
+.q-header-text{font-family:'Syne',sans-serif;font-size:16px;font-weight:700}
+.q-header-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.q-body{padding:28px}
+.q-step{display:none}
+.q-step.active{display:block;animation:fadeIn .35s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.q-label{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;margin-bottom:6px;}
+.q-hint{font-size:13px;color:var(--muted);margin-bottom:22px;line-height:1.5;}
+.opt-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opt-card{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer;transition:border-color .2s,background .2s;display:flex;align-items:center;gap:12px;}
+.opt-card:hover{border-color:var(--teal2);background:rgba(0,212,200,.04)}
+.opt-card.selected{border-color:var(--teal);background:rgba(0,212,200,.08)}
+.oiw{width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,.04);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.opt-name{font-family:'Syne',sans-serif;font-size:13px;font-weight:700}
+.opt-desc{font-size:11px;color:var(--muted);margin-top:2px}
+.q-progress{display:flex;gap:6px;margin-bottom:28px;}
+.qpd{height:4px;border-radius:2px;flex:1;background:var(--border);transition:background .3s;}
+.qpd.done{background:var(--teal)}.qpd.active{background:rgba(0,212,200,.4)}
+.q-nav{display:flex;justify-content:space-between;margin-top:24px;align-items:center}
+.q-back{background:transparent;border:1px solid var(--border);color:var(--muted);padding:10px 20px;border-radius:8px;font-family:'Syne',sans-serif;font-size:13px;cursor:pointer;transition:border-color .2s,color .2s;}
+.q-back:hover{border-color:var(--muted);color:var(--text)}
+.q-next{background:linear-gradient(120deg,var(--teal),var(--blue));color:#060A12;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;padding:10px 28px;border-radius:8px;border:none;cursor:pointer;transition:transform .15s;}
+.q-next:hover{transform:translateY(-2px)}
+.q-next:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.q-step-label{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)}
+
+/* DEVICE PANEL */
+.device-panel{background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden;position:sticky;top:90px;}
+.device-top{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.device-model{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)}
+.device-model span{color:var(--teal)}
+.dev-status{font-family:'DM Mono',monospace;font-size:10px;padding:4px 10px;border-radius:10px;background:rgba(0,212,200,.08);color:var(--teal);border:1px solid var(--teal2);transition:all .3s;}
+.device-screen{margin:20px auto;width:200px;height:200px;background:var(--bg);border-radius:50%;border:2px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden;}
+.ds-ring{position:absolute;inset:-2px;border-radius:50%;border:2px solid transparent;transition:border-color .5s;}
+.ds-ring.active{border-color:var(--teal);animation:spin 3s linear infinite;}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.ds-glow{position:absolute;inset:20px;border-radius:50%;background:radial-gradient(circle,rgba(0,212,200,.0),transparent);transition:background .5s;}
+.ds-glow.active{background:radial-gradient(circle,rgba(0,212,200,.12),transparent)}
+.ds-val{font-family:'DM Mono',monospace;font-size:48px;font-weight:500;line-height:1;color:var(--muted);transition:color .5s;z-index:1;}
+.ds-unit{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:4px;z-index:1}
+.ds-tag{font-size:11px;font-family:'DM Mono',monospace;padding:3px 12px;border-radius:10px;margin-top:10px;z-index:1;border:1px solid transparent;transition:all .5s;}
+.sensor-rows{padding:0 24px 20px;display:flex;flex-direction:column;gap:10px}
+.sensor-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface);border-radius:10px;border:1px solid var(--border);}
+.sr-left{display:flex;align-items:center;gap:10px}
+.sr-icon{font-size:16px}
+.sr-name{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace}
+.sr-val{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:var(--muted);transition:color .5s}
+.sr-bar-wrap{width:60px;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.sr-bar{height:100%;border-radius:2px;width:0%;transition:width 1.5s cubic-bezier(.4,0,.2,1),background .5s}
+.auto-badge{font-family:'DM Mono',monospace;font-size:9px;color:var(--teal2);background:rgba(0,212,200,.06);border:1px solid var(--teal2);padding:2px 7px;border-radius:6px;margin-left:6px;}
+.rec-box{margin:0 24px 24px;padding:14px 16px;border-radius:12px;background:var(--surface);border:1px solid var(--border);display:none;animation:fadeIn .4s ease;}
+.rec-box.show{display:block}
+.rec-title{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;letter-spacing:.5px}
+.rec-text{font-size:13px;line-height:1.5;}
+
+/* SCAN OVERLAY */
+#overlay{position:fixed;inset:0;z-index:500;background:rgba(6,10,18,.97);display:none;flex-direction:column;align-items:center;justify-content:center;gap:28px;}
+#overlay.on{display:flex}
+.ov-ring-wrap{position:relative;width:180px;height:180px}
+.ov-ring{position:absolute;inset:0;border-radius:50%;border:1.5px solid var(--teal);animation:ovSpin 2.4s linear infinite;}
+.ov-ring:nth-child(2){inset:18px;opacity:.6;animation-duration:1.8s;animation-direction:reverse}
+.ov-ring:nth-child(3){inset:36px;opacity:.3;animation-duration:3.2s}
+@keyframes ovSpin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.ov-center{position:absolute;inset:54px;border-radius:50%;background:radial-gradient(circle,rgba(0,212,200,.15),transparent);display:flex;align-items:center;justify-content:center;font-size:36px;}
+.ov-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--teal)}
+.ov-sub{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)}
+.ov-bar-wrap{width:260px;height:3px;background:var(--border);border-radius:2px;overflow:hidden}
+.ov-bar{height:100%;width:0%;background:linear-gradient(90deg,var(--teal),var(--blue));border-radius:2px;transition:width .1s linear}
+.ov-steps{display:flex;flex-direction:column;gap:7px;font-family:'DM Mono',monospace;font-size:12px;text-align:center}
+.ov-step{color:var(--muted);transition:color .3s}
+.ov-step.done{color:var(--teal)}.ov-step.cur{color:var(--text)}
+
+#history{padding:60px 0 100px}
+.hist-item{display:grid;grid-template-columns:100px 1fr 110px 100px 100px;gap:16px;align-items:center;padding:14px 20px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;font-size:13px;font-family:'DM Mono',monospace;animation:fadeIn .4s ease both;}
+.hi-time{color:var(--muted)}.hi-prf{color:var(--text);font-weight:500}.hi-ac{color:var(--teal)}
+.hi-badge{text-align:center;padding:3px 10px;border-radius:8px;font-size:11px}
+
+footer{border-top:1px solid var(--border);padding:36px 24px;text-align:center;font-size:13px;color:var(--muted);position:relative;z-index:1;}
+</style>
+</head>
+<body>
+<div class="orb o1"></div>
+<div class="orb o2"></div>
+
+<nav>
+  <div class="logo">GlucoAura</div>
+  <div class="live-dot">DEVICE READY</div>
+</nav>
+
+<section id="hero">
+  <div class="hero-eyebrow">No Needles · No Patches · No Pain</div>
+  <h1 class="hero-h1">Breathe In.<br><span class="g">Know Your Sugar.</span></h1>
+  <p class="hero-p">Answer 3 simple everyday questions. GlucoAura's AI sensors automatically detect the rest — acetone, humidity, CO₂ — all invisible to you.</p>
+  <button class="hero-btn" onclick="document.getElementById('scan-section').scrollIntoView({behavior:'smooth'})">Try the Demo →</button>
+  <div class="pills">
+    <div class="pill"><span>🩺</span>Glucose Reading<span class="pill-val">Instant</span></div>
+    <div class="pill"><span>💬</span>You answer only<span class="pill-val">3 questions</span></div>
+    <div class="pill"><span>🤖</span>AI Accuracy<span class="pill-val">95%</span></div>
+    <div class="pill"><span>👶</span>All Ages<span class="pill-val">Universal</span></div>
+  </div>
+</section>
+
+<section id="scan-section">
+  <div class="wrap">
+    <div class="sh">
+      <div class="sh-tag">// LIVE DEMO</div>
+      <div class="sh-title">Take a Glucose Reading</div>
+      <div class="sh-desc">Answer 3 questions any person would know. The Python backend runs the AI model and returns your result.</div>
+    </div>
+    <div class="scan-layout">
+
+      <!-- QUESTION FLOW -->
+      <div class="q-flow">
+        <div class="q-header">
+          <div class="q-header-icon">💬</div>
+          <div>
+            <div class="q-header-text">Quick Health Check</div>
+            <div class="q-header-sub">3 simple questions · 20 seconds</div>
+          </div>
+        </div>
+        <div class="q-body">
+          <div class="q-progress">
+            <div class="qpd active" id="pd1"></div>
+            <div class="qpd" id="pd2"></div>
+            <div class="qpd" id="pd3"></div>
+          </div>
+
+          <!-- Q1: Age -->
+          <div class="q-step active" id="q1">
+            <div class="q-label">How old are you?</div>
+            <div class="q-hint">Age calibrates the AI model — a child's metabolism differs from an adult's.</div>
+            <div class="opt-grid">
+              <div class="opt-card" onclick="sel('q1','child',this)"><div class="oiw">👦</div><div><div class="opt-name">Child</div><div class="opt-desc">Under 13</div></div></div>
+              <div class="opt-card" onclick="sel('q1','teen',this)"><div class="oiw">🧑</div><div><div class="opt-name">Teen</div><div class="opt-desc">13–17 yrs</div></div></div>
+              <div class="opt-card" onclick="sel('q1','adult',this)"><div class="oiw">🧑‍💼</div><div><div class="opt-name">Adult</div><div class="opt-desc">18–60 yrs</div></div></div>
+              <div class="opt-card" onclick="sel('q1','elderly',this)"><div class="oiw">🧓</div><div><div class="opt-name">Senior</div><div class="opt-desc">60+ yrs</div></div></div>
+            </div>
+            <div class="q-nav"><span class="q-step-label">Question 1 of 3</span><button class="q-next" id="n1" disabled onclick="goTo(2)">Next →</button></div>
+          </div>
+
+          <!-- Q2: Meal -->
+          <div class="q-step" id="q2">
+            <div class="q-label">When did you last eat?</div>
+            <div class="q-hint">Food intake directly raises glucose. This tells the AI whether to give a fasting or post-meal reading.</div>
+            <div class="opt-grid">
+              <div class="opt-card" onclick="sel('q2','fasting',this)"><div class="oiw">🌙</div><div><div class="opt-name">Fasting</div><div class="opt-desc">8+ hours ago</div></div></div>
+              <div class="opt-card" onclick="sel('q2','2hr',this)"><div class="oiw">⏰</div><div><div class="opt-name">2 hrs ago</div><div class="opt-desc">Normal gap</div></div></div>
+              <div class="opt-card" onclick="sel('q2','30min',this)"><div class="oiw">🍽️</div><div><div class="opt-name">30 min ago</div><div class="opt-desc">Recently ate</div></div></div>
+              <div class="opt-card" onclick="sel('q2','just',this)"><div class="oiw">🥘</div><div><div class="opt-name">Just ate</div><div class="opt-desc">Under 10 min</div></div></div>
+            </div>
+            <div class="q-nav"><button class="q-back" onclick="goTo(1)">← Back</button><button class="q-next" id="n2" disabled onclick="goTo(3)">Next →</button></div>
+          </div>
+
+          <!-- Q3: Symptoms -->
+          <div class="q-step" id="q3">
+            <div class="q-label">How are you feeling right now?</div>
+            <div class="q-hint">Symptoms are the one thing sensors can't detect — your honest answer improves accuracy.</div>
+            <div class="opt-grid">
+              <div class="opt-card" onclick="sel('q3','great',this)"><div class="oiw">😊</div><div><div class="opt-name">Great</div><div class="opt-desc">Feeling normal</div></div></div>
+              <div class="opt-card" onclick="sel('q3','tired',this)"><div class="oiw">😴</div><div><div class="opt-name">Tired / Dizzy</div><div class="opt-desc">Low energy</div></div></div>
+              <div class="opt-card" onclick="sel('q3','thirsty',this)"><div class="oiw">🥤</div><div><div class="opt-name">Very Thirsty</div><div class="opt-desc">Frequent urination</div></div></div>
+              <div class="opt-card" onclick="sel('q3','shaky',this)"><div class="oiw">😰</div><div><div class="opt-name">Shaky / Sweaty</div><div class="opt-desc">Possible low sugar</div></div></div>
+            </div>
+            <div class="q-nav"><button class="q-back" onclick="goTo(2)">← Back</button><button class="q-next" id="n3" disabled onclick="startScan()">💨 Start Scan</button></div>
+          </div>
+
+          <!-- DONE -->
+          <div class="q-step" id="qdone">
+            <div style="text-align:center;padding:20px 0">
+              <div style="font-size:52px;margin-bottom:16px">✅</div>
+              <div class="q-label" style="text-align:center;font-size:20px">Scan Complete!</div>
+              <div class="q-hint" style="text-align:center;margin-top:8px;margin-bottom:0">Your reading is on the device panel →</div>
+              <button class="q-next" style="margin-top:28px" onclick="resetAll()">🔄 New Scan</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DEVICE PANEL -->
+      <div class="device-panel">
+        <div class="device-top">
+          <div class="device-model">GlucoAura <span>GA-1 Pro</span></div>
+          <div class="dev-status" id="dev-status">STANDBY</div>
+        </div>
+        <div class="device-screen">
+          <div class="ds-ring" id="ds-ring"></div>
+          <div class="ds-glow" id="ds-glow"></div>
+          <div class="ds-val" id="ds-val">—</div>
+          <div class="ds-unit">mg / dL</div>
+          <div class="ds-tag" id="ds-tag">Awaiting breath</div>
+        </div>
+        <div class="sensor-rows">
+          <div class="sensor-row">
+            <div class="sr-left"><span class="sr-icon">⚗️</span><span class="sr-name">ACETONE<span class="auto-badge">AUTO</span></span></div>
+            <div style="display:flex;align-items:center;gap:10px"><div class="sr-bar-wrap"><div class="sr-bar" id="bar-ac"></div></div><span class="sr-val" id="sv-ac">—</span></div>
+          </div>
+          <div class="sensor-row">
+            <div class="sr-left"><span class="sr-icon">💧</span><span class="sr-name">HUMIDITY<span class="auto-badge">AUTO</span></span></div>
+            <div style="display:flex;align-items:center;gap:10px"><div class="sr-bar-wrap"><div class="sr-bar" id="bar-hm"></div></div><span class="sr-val" id="sv-hm">—</span></div>
+          </div>
+          <div class="sensor-row">
+            <div class="sr-left"><span class="sr-icon">🌬️</span><span class="sr-name">CO₂<span class="auto-badge">AUTO</span></span></div>
+            <div style="display:flex;align-items:center;gap:10px"><div class="sr-bar-wrap"><div class="sr-bar" id="bar-co"></div></div><span class="sr-val" id="sv-co">—</span></div>
+          </div>
+          <div class="sensor-row">
+            <div class="sr-left"><span class="sr-icon">🧠</span><span class="sr-name">AI CONFIDENCE<span class="auto-badge">AUTO</span></span></div>
+            <div style="display:flex;align-items:center;gap:10px"><div class="sr-bar-wrap"><div class="sr-bar" id="bar-cf"></div></div><span class="sr-val" id="sv-cf">—</span></div>
+          </div>
+        </div>
+        <div class="rec-box" id="rec-box">
+          <div class="rec-title">// AI RECOMMENDATION</div>
+          <div class="rec-text" id="rec-text"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="history">
+  <div class="wrap">
+    <div class="sh">
+      <div class="sh-tag">// SCAN LOG</div>
+      <div class="sh-title">Reading History</div>
+      <div class="sh-desc">Auto-saved after every scan. No manual logging.</div>
+    </div>
+    <div id="hist-list">
+      <div style="color:var(--muted);font-family:'DM Mono',monospace;font-size:13px;text-align:center;padding:32px">Complete a scan above to see your history here.</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;background:linear-gradient(120deg,var(--teal),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:10px">GlucoAura</div>
+  <div>Cognizant® Technoverse Hackathon 2026 · Flask + Python Backend · TinyML AI</div>
+  <div style="margin-top:8px;font-size:11px">⚠️ Simulation for demonstration. Not a certified medical device.</div>
+</footer>
+
+<!-- SCAN OVERLAY -->
+<div id="overlay">
+  <div class="ov-ring-wrap">
+    <div class="ov-ring"></div><div class="ov-ring"></div><div class="ov-ring"></div>
+    <div class="ov-center">💨</div>
+  </div>
+  <div class="ov-title" id="ov-title">Sending to Python AI...</div>
+  <div class="ov-sub" id="ov-sub">Flask server processing breath data</div>
+  <div class="ov-bar-wrap"><div class="ov-bar" id="ov-bar"></div></div>
+  <div class="ov-steps">
+    <div class="ov-step" id="os1">◦ Trapping breath sample</div>
+    <div class="ov-step" id="os2">◦ Filtering CO₂ & humidity noise</div>
+    <div class="ov-step" id="os3">◦ Measuring acetone concentration</div>
+    <div class="ov-step" id="os4">◦ Running TinyML inference (Python)</div>
+    <div class="ov-step" id="os5">◦ Returning glucose estimate</div>
+  </div>
+</div>
+
+<script>
+const ans = {q1:null, q2:null, q3:null};
+const history = [];
+
+function sel(q, val, el) {
+  ans[q] = val;
+  el.closest('.opt-grid').querySelectorAll('.opt-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById(q==='q1'?'n1':q==='q2'?'n2':'n3').disabled = false;
+}
+
+function goTo(n) {
+  document.querySelectorAll('.q-step').forEach(s => s.classList.remove('active'));
+  document.getElementById('q'+n).classList.add('active');
+  ['pd1','pd2','pd3'].forEach((id,i) => {
+    const el = document.getElementById(id);
+    el.classList.remove('done','active');
+    if (i+1 < n) el.classList.add('done');
+    else if (i+1 === n) el.classList.add('active');
+  });
+}
+
+function startScan() {
+  const ov = document.getElementById('overlay');
+  ov.classList.add('on');
+  const sids = ['os1','os2','os3','os4','os5'];
+  const lbls = [
+    'Trapping breath sample',
+    'Filtering CO₂ & humidity noise',
+    'Measuring acetone concentration',
+    'Running TinyML inference (Python)',
+    'Returning glucose estimate'
+  ];
+  sids.forEach((id,i) => { const el=document.getElementById(id); el.classList.remove('done','cur'); el.textContent='◦ '+lbls[i]; });
+  document.getElementById('ov-bar').style.width = '0%';
+
+  let step = 0;
+  const iv = setInterval(() => {
+    if (step < sids.length) {
+      if (step > 0) {
+        const p = document.getElementById(sids[step-1]);
+        p.classList.remove('cur'); p.classList.add('done');
+        p.textContent = '✓ ' + lbls[step-1];
+      }
+      const c = document.getElementById(sids[step]);
+      c.classList.add('cur'); c.textContent = '→ ' + lbls[step];
+      document.getElementById('ov-sub').textContent = lbls[step] + '…';
+      document.getElementById('ov-bar').style.width = ((step+1)/sids.length*100) + '%';
+      step++;
+    } else {
+      clearInterval(iv);
+      const l = document.getElementById(sids[sids.length-1]);
+      l.classList.remove('cur'); l.classList.add('done');
+      l.textContent = '✓ ' + lbls[sids.length-1];
+      document.getElementById('ov-bar').style.width = '100%';
+      document.getElementById('ov-title').textContent = 'Python AI Complete ✓';
+
+      // ── CALL PYTHON FLASK BACKEND ──
+      fetch('/scan', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ age: ans.q1, meal: ans.q2, symptoms: ans.q3 })
+      })
+      .then(r => r.json())
+      .then(data => {
+        setTimeout(() => { ov.classList.remove('on'); showResult(data); }, 700);
+      })
+      .catch(err => {
+        console.error('Flask error:', err);
+        ov.classList.remove('on');
+      });
+    }
+  }, 600);
+}
+
+function showResult(d) {
+  document.getElementById('ds-ring').classList.add('active');
+  document.getElementById('ds-glow').classList.add('active');
+  const v = document.getElementById('ds-val');
+  v.style.color = d.color;
+  countUp(v, d.glucose, 1200);
+  const tag = document.getElementById('ds-tag');
+  tag.textContent = d.label;
+  tag.style.color = d.color;
+  tag.style.borderColor = d.color + '55';
+  tag.style.background = d.color + '14';
+  const ds = document.getElementById('dev-status');
+  ds.textContent = d.label; ds.style.color = d.color; ds.style.borderColor = d.color;
+
+  setTimeout(() => animSensor('ac', d.acetone, 3.0,   d.acetone.toFixed(2)+' ppm', 'var(--teal)'), 200);
+  setTimeout(() => animSensor('hm', d.humidity, 100,  d.humidity.toFixed(0)+'%',   'var(--blue)'), 400);
+  setTimeout(() => animSensor('co', d.co2, 6,          d.co2.toFixed(1)+'%',        'var(--amber)'), 600);
+  setTimeout(() => animSensor('cf', d.confidence, 100, d.confidence+'%',            'var(--green)'), 800);
+
+  const rb = document.getElementById('rec-box');
+  rb.classList.add('show');
+  document.getElementById('rec-text').textContent = d.rec;
+  document.getElementById('rec-text').style.color = d.color;
+
+  addHistory(d);
+  document.querySelectorAll('.q-step').forEach(s => s.classList.remove('active'));
+  document.getElementById('qdone').classList.add('active');
+  ['pd1','pd2','pd3'].forEach(id => document.getElementById(id).classList.add('done'));
+}
+
+function animSensor(k, val, max, label, color) {
+  const pct = Math.min(100, (val/max)*100);
+  document.getElementById('bar-'+k).style.width = pct+'%';
+  document.getElementById('bar-'+k).style.background = color;
+  document.getElementById('sv-'+k).style.color = color;
+  document.getElementById('sv-'+k).textContent = label;
+}
+
+function countUp(el, target, dur) {
+  const s = performance.now();
+  function t(now) {
+    const p = Math.min((now-s)/dur, 1);
+    el.textContent = Math.round((1-Math.pow(1-p,3))*target);
+    if (p < 1) requestAnimationFrame(t);
+  }
+  requestAnimationFrame(t);
+}
+
+function addHistory(d) {
+  const time = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  const aL = {child:'Child',teen:'Teen',adult:'Adult',elderly:'Senior'}[ans.q1];
+  const mL = {fasting:'Fasting','2hr':'2 hrs','30min':'30 min',just:'Just ate'}[ans.q2];
+  history.unshift({time,aL,mL,ac:d.acetone,g:d.glucose,color:d.color,label:d.label});
+  if (history.length > 5) history.pop();
+  document.getElementById('hist-list').innerHTML = history.map((h,i) => `
+    <div class="hist-item" style="animation-delay:${i*.07}s">
+      <div class="hi-time">${h.time}</div>
+      <div class="hi-prf">${h.aL} · ${h.mL}</div>
+      <div class="hi-ac">⚗️ ${h.ac.toFixed(2)} ppm</div>
+      <div style="color:${h.color};font-weight:700;font-family:'DM Mono',monospace">${h.g} mg/dL</div>
+      <div class="hi-badge" style="background:${h.color}22;color:${h.color};border:1px solid ${h.color}44">${h.label}</div>
+    </div>`).join('');
+}
+
+function resetAll() {
+  ans.q1=ans.q2=ans.q3=null;
+  ['n1','n2','n3'].forEach(id => document.getElementById(id).disabled=true);
+  document.querySelectorAll('.opt-card').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('.q-step').forEach(s => s.classList.remove('active'));
+  document.getElementById('q1').classList.add('active');
+  ['pd1','pd2','pd3'].forEach((id,i) => {
+    const el=document.getElementById(id); el.classList.remove('done','active');
+    if(i===0) el.classList.add('active');
+  });
+  document.getElementById('ds-ring').classList.remove('active');
+  document.getElementById('ds-glow').classList.remove('active');
+  document.getElementById('ds-val').textContent='—';
+  document.getElementById('ds-val').style.color='var(--muted)';
+  document.getElementById('ds-tag').textContent='Awaiting breath';
+  document.getElementById('ds-tag').style.cssText='';
+  document.getElementById('dev-status').textContent='STANDBY';
+  document.getElementById('dev-status').style.cssText='';
+  ['ac','hm','co','cf'].forEach(k => {
+    document.getElementById('bar-'+k).style.width='0%';
+    document.getElementById('sv-'+k).textContent='—';
+    document.getElementById('sv-'+k).style.color='var(--muted)';
+  });
+  document.getElementById('rec-box').classList.remove('show');
+  document.getElementById('ov-title').textContent='Sending to Python AI...';
+  document.getElementById('ov-sub').textContent='Flask server processing breath data';
+}
+</script>
+</body>
+</html>
